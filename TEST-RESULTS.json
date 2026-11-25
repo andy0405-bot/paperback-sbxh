@@ -1,0 +1,46 @@
+{
+  "testedAt": "2026-11-25T15:20:37.251Z",
+  "runtime": "v24.22.3",
+  "sections": [
+    {
+      "id": "updates",
+      "count": 43,
+      "first": "학생회에도 구멍은 있다!"
+    },
+    {
+      "id": "fresh",
+      "count": 49,
+      "first": "근육뇌 캐릭터 전생"
+    },
+    {
+      "id": "views",
+      "count": 42,
+      "first": "원피스(ONE PIECE)"
+    }
+  ],
+  "latestPage2": 40,
+  "searchResults": 2,
+  "chapters": 70,
+  "imageUrls": 26,
+  "sampleImageDownloads": [
+    {
+      "page": 1,
+      "status": 200,
+      "type": "image/gif",
+      "bytes": 872829
+    },
+    {
+      "page": 13,
+      "status": 200,
+      "type": "image/gif",
+      "bytes": 665740
+    },
+    {
+      "page": 26,
+      "status": 200,
+      "type": "image/gif",
+      "bytes": 879152
+    }
+  ],
+  "iosVerified": false
+}
