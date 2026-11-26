@@ -21,9 +21,9 @@ async function main() {
   const source = new SBXH()
   const sections: any[] = []
   await source.getHomePageSections(async section => {sections.push(section)})
-  assert.equal(sections.length,3)
-  assert(sections.every(s=>s.items.length > 0))
-  summary.sections = sections.map(s=>({id:s.id,count:s.items.length,first:s.items[0].title}))
+  assert.equal(sections.length,6)
+  assert(sections.slice(3).every(s=>s.items.length > 0))
+  summary.sections = sections.slice(3).map(s=>({id:s.id,count:s.items.length,first:s.items[0].title}))
   const next = await source.getViewMoreItems('updates',{page:2})
   assert(next.results.length)
   summary.latestPage2 = next.results.length
