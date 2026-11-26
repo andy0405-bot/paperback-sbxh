@@ -1,4 +1,4 @@
-# Paperback 0.8 — SBXH 한국어 0.1.1 시험판
+# Paperback 0.8 — SBXH 한국어 0.1.2 시험판
 
 Paperback v0.8.11-r1의 실제 설치와 렌더링은 아직 미검증입니다.
 Windows Node.js 24에서 @paperback/types 및 toolchain 0.8.0-alpha.38로 빌드했습니다.
@@ -43,7 +43,7 @@ Repository Base URL
 
     https://andy0405-bot.github.io/paperback-sbxh/0.8/
 
-배포 후 versioning.json에 SBXH 0.1.1이 존재하는지 확인합니다.
+배포 후 versioning.json에 SBXH 0.1.2이 존재하는지 확인합니다.
 Pages에는 확장 코드만 배포합니다. 사이트 이미지나 회차 토큰을 저장하지 않습니다.
 
 ## iPhone 설치와 확인
@@ -88,3 +88,7 @@ iPhone 설치·렌더링·자동 갱신, 인증 회차는 미검증입니다.
 ## 0.1.1 검증 및 한계
 
 REPORT-0.1.1.txt 및 REGRESSION-RESULTS.json을 참고하세요. 회차 100개 제한을 수정했고 모든 작품을 성인물로 저장하던 분류를 작품별로 처리합니다. 라이브러리 표시 해결 여부는 iPhone에서 재검증해야 합니다. 이번 실제 사이트 요청은 HTTP403으로 제한되었습니다. 기존 ID와 사용자 데이터는 변경하지 않습니다.
+
+## 0.1.2 접근 오류 진단
+
+실제 HTTP403 본문에서 NGINX_CIDR_REALIP(IP 대역 차단)를 확인했습니다. 0.1.2는 상태 코드와 사유를 구분하며 일반 웹뷰 진입 함수를 제공합니다. 차단 해제 기능은 아닙니다. REPORT-0.1.2.txt를 참고하세요. iPhone 실제 웹뷰 및 목록 복구는 미검증입니다.

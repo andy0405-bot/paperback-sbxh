@@ -1,6 +1,6 @@
 {
-  "testedAt": "2026-11-26T01:04:22.848Z",
-  "version": "0.1.1",
+  "testedAt": "2026-11-26T01:19:50.603Z",
+  "version": "0.1.2",
   "fixtureResults": [
     {
       "syntheticTotal": 52,
@@ -48,7 +48,11 @@
     "missing final page",
     "page gap",
     "general/adult/unknown metadata",
-    "unchanged listing/search/image implementation"
+    "unchanged search/image implementation",
+    "HTTP 200/401/403/428/429/503 classification",
+    "HTTP 200 challenge rejected",
+    "normal globe webview request",
+    "sections registered before network; no blocked retry loop"
   ],
   "liveRetest": "HTTP 403; access restriction respected",
   "iosVerified": false,

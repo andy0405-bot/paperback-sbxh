@@ -1,0 +1,35 @@
+SBXH Paperback 0.1.2 — 2026-11-26
+
+실제 HTTP 진단
+Windows에서 /, /manhwa/updates?page=1, /manhwa?sort=fresh&page=1, /manhwa/2 요청 모두 HTTP403, text/html, 3114자 응답.
+본문 제목 Access denied | Cloudflare, 서버 헤더 nginx.
+본문 명시 사유 NGINX_CIDR_REALIP: Client IP range is blocked by site security policy.
+정상 목록 HTML이 아니라 서버 보안 정책의 IP 대역 차단 응답이다. 0.1.1의 request HTTP 상태 판정이 정상 응답을 403으로 오인한 것은 아니다.
+해당 request 코드는 0.1.0/0.1.1에서 같았다. 0.1.1 회차/분류 변경과는 구분된다.
+사진의 iPhone 오류는 401/403/428 중 하나임을 나타내지만 정확한 상태와 본문은 사진에 없어 PC와 같은 IP 대역 차단이라고 단정할 수 없다.
+0.1.2는 기기의 실제 상태 코드를 오류 메시지에 포함하여 구분할 수 있도록 한다.
+전체 원문은 work/http-012-0.html~3.html에 로컬 보관했다. 원문에는 서버가 표시한 접속 IP 등이 있으므로 GitHub에 게시하지 않는다.
+HTTP-DIAGNOSTICS-0.1.2.json은 IP를 제외한 진단 요약이다.
+
+수정
+오류에 HTTP 상태/요청 경로/서버 IP대역 차단/인증/접근거부/429/기타 오류를 구분하여 표시한다.
+HTTP200으로 반환된 보안 확인 페이지와 빈 본문도 별도로 감지한다. 정상 작품 본문의 일반 문구만으로 거부하지 않는다.
+getHomePageSections는 통신 전 섹션을 등록한다. 차단을 숨겨 성공 목록으로 처리하지 않으며, 차단 후 후속 섹션 요청을 반복하지 않는다.
+기존 코드에는 getCloudflareBypassRequestAsync가 없었다. 공식 0.8 Source가 정의하는 일반 웹뷰 진입 요청을 추가했다.
+함수명은 SDK 이름이다. 자동 보안 확인 해결, 쿠키 추출, 프록시, 보호 기능 변경은 없다. 실제 IP 대역 차단을 해제하는 기능이 아니다.
+source ID SBXH, 작품 ID, 회차 ID, 검색, 이미지 로딩, 0.1.1의 전체회차 페이지 처리는 유지한다.
+
+검증
+TypeScript 검사 및 toolchain/types 0.8.0-alpha.38 빌드 성공.
+회차52/99/100/101/112/1309개, 중복/반복/누락/통신실패 테스트 통과.
+HTTP200/401/403/428/429/503, IP 차단/확인페이지/빈본문 분류 테스트 통과.
+일반 웹뷰 요청 URL/GET 반환 및 차단 시 3개 섹션 선등록/1회 요청 테스트 통과.
+실제 확장 라이브 검증은 첫 요청 HTTP403 NGINX_CIDR_REALIP로 실패했다. 목록/이미지 실시간 성공을 주장하지 않는다.
+iPhone 지구본 실행, 차단 해소 후 Discover 표시, 기존 서재 및 기록 갱신은 미검증.
+
+기존 Repository Base URL
+https://andy0405-bot.github.io/paperback-sbxh/0.8/
+
+참고
+공식 0.8 SDK Source.getCloudflareBypassRequestAsync 정의: node_modules/@paperback/types/src/base/Source.ts
+공식 0.8 섹션 선등록 예제: https://github.com/Paperback-iOS/extensions-default/blob/0.8/src/Paperback/Paperback.ts

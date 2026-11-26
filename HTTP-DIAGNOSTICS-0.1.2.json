@@ -1,0 +1,46 @@
+[
+  {
+    "path": "/",
+    "status": 403,
+    "url": "https://sbxh9.com/",
+    "contentType": "text/html",
+    "server": "nginx",
+    "bodyFile": "http-012-0.html",
+    "bodyLength": 3114,
+    "bodyExcerpt": "Access denied. This request was blocked by site security policy. Block reason: NGINX_CIDR_REALIP. Client IP range is blocked by site security policy.",
+    "blockReason": "NGINX_CIDR_REALIP"
+  },
+  {
+    "path": "/manhwa/updates?page=1",
+    "status": 403,
+    "url": "https://sbxh9.com/manhwa/updates?page=1",
+    "contentType": "text/html",
+    "server": "nginx",
+    "bodyFile": "http-012-1.html",
+    "bodyLength": 3114,
+    "bodyExcerpt": "Access denied. This request was blocked by site security policy. Block reason: NGINX_CIDR_REALIP. Client IP range is blocked by site security policy.",
+    "blockReason": "NGINX_CIDR_REALIP"
+  },
+  {
+    "path": "/manhwa?sort=fresh&page=1",
+    "status": 403,
+    "url": "https://sbxh9.com/manhwa?sort=fresh&page=1",
+    "contentType": "text/html",
+    "server": "nginx",
+    "bodyFile": "http-012-2.html",
+    "bodyLength": 3114,
+    "bodyExcerpt": "Access denied. This request was blocked by site security policy. Block reason: NGINX_CIDR_REALIP. Client IP range is blocked by site security policy.",
+    "blockReason": "NGINX_CIDR_REALIP"
+  },
+  {
+    "path": "/manhwa/2",
+    "status": 403,
+    "url": "https://sbxh9.com/manhwa/2",
+    "contentType": "text/html",
+    "server": "nginx",
+    "bodyFile": "http-012-3.html",
+    "bodyLength": 3114,
+    "bodyExcerpt": "Access denied. This request was blocked by site security policy. Block reason: NGINX_CIDR_REALIP. Client IP range is blocked by site security policy.",
+    "blockReason": "NGINX_CIDR_REALIP"
+  }
+]
