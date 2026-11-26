@@ -1,0 +1,7 @@
+11툰 Paperback 0.8 port
+Adapted from Keiyoushi extensions-source Toon11.kt and Filters.kt
+https://github.com/keiyoushi/extensions-source/tree/main/src/ko/toon11
+Reference commit: 92906c0382547f30a03b3176f2f2429be6b54dce
+License: Apache-2.0 (included). Original upstream file contains no individual copyright header.
+Modified by andy0405-bot, 2026-11-26: TypeScript port; settings, IDs, safe JSON parsing and pagination validation.
+This license covers extension code, not site content rights.
