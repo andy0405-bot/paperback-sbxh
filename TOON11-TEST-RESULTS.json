@@ -1,7 +1,7 @@
 {
-  "testedAt": "2026-11-26T02:14:37.185Z",
+  "testedAt": "2026-11-26T02:29:54.598Z",
   "sourceId": "Toon11",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "passed": [
     "validated origin setting and share/webview origin",
     "latest list metadata, cover and pagination",
@@ -11,7 +11,8 @@
     "1/99/100/101/1309 chapters; stable IDs across title query changes; sequential page counts",
     "overlap no-progress, repeated page and network failure rejected",
     "safe JSON image parsing, original page order, chapter identity, unsafe scripts rejected",
-    "HTTP access/authentication/rate-limit/server-error distinctions"
+    "HTTP access/authentication/rate-limit/server-error distinctions",
+    "normal catalogue/detail/viewer with challenge-platform script accepted; challenge form rejected; 0.8 webview intent and legacy hook"
   ],
   "liveNodeRequests": "ECONNRESET; no HTTP status or body received",
   "liveCurlRequests": "TLS receive Connection reset; HTTP000",
