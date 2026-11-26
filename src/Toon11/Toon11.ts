@@ -9,10 +9,10 @@ import * as cheerio from 'cheerio'
 
 const DEFAULT_BASE = 'https://update.spotv24.com'
 export const Toon11Info: SourceInfo = {
-  name: '11툰 한국어', version: '0.1.0', icon: 'icon.png', author: 'andy0405-bot',
+  name: '11툰 한국어', version: '0.1.1', icon: 'icon.png', author: 'andy0405-bot',
   description: 'Paperback 0.8 시험판. 공개 일반 만화 페이지를 읽습니다. 실제 기기 미검증.',
   websiteBaseURL: DEFAULT_BASE, language: 'ko', contentRating: ContentRating.MATURE,
-  intents: SourceIntents.MANGA_CHAPTERS | SourceIntents.HOMEPAGE_SECTIONS | SourceIntents.SETTINGS_UI
+  intents: SourceIntents.MANGA_CHAPTERS | SourceIntents.HOMEPAGE_SECTIONS | SourceIntents.SETTINGS_UI | SourceIntents.CLOUDFLARE_BYPASS_REQUIRED
 }
 export function origin(value: string): string {
   const clean = value.trim().replace(/\/+$/, '')
@@ -52,7 +52,14 @@ export function responseText(response: Response): string {
   if (code === 401) throw new Error('[11툰 HTTP 401] 사이트에서 인증을 요구합니다.')
   if (code === 403 || /access denied|forbidden/i.test(title)) throw new Error('[11툰 HTTP ' + code + '] 사이트가 접근을 거부했습니다. 서버의 차단 사유를 확인해 주세요.')
   if (code === 429) throw new Error('[11툰 HTTP 429] 요청 제한입니다. 잠시 후 다시 시도해 주세요.')
-  if (/just a moment|attention required/i.test(title) || /cf-chl-|challenge-platform/.test(text)) throw new Error('[11툰 HTTP ' + code + '] 브라우저 확인 페이지가 반환되었습니다.')
+  // A normal page may also load challenge-platform scripts. Script names alone
+  // do not establish that the response is an interstitial.
+  const $ = cheerio.load(text)
+  const hasContent = $('li[data-id] .homelist-title, h2.title, #comic-episode-list').length > 0 ||
+    $('script').toArray().some(e => /\bimg_list\s*=\s*\[/.test($(e).html() || ''))
+  const challengeTitle = /^(?:just a moment(?:\.\.\.)?|attention required(?:!| \| Cloudflare)?)\s*$/i.test(title.trim())
+  const challengeForm = $('#challenge-form, #challenge-running, #cf-challenge-running, .cf-challenge').length > 0
+  if (!hasContent && (challengeTitle || challengeForm)) throw new Error('[11툰 HTTP ' + code + '] 브라우저 확인 페이지가 반환되었습니다.')
   if (code < 200 || code >= 300) throw new Error('[11툰 HTTP ' + code + '] 서버 오류입니다.')
   if (!text.trim()) throw new Error('[11툰 HTTP ' + code + '] 응답 본문이 비어 있습니다.')
   return text
@@ -192,7 +199,15 @@ export class Toon11 implements PaperbackExtensionBase, ChapterProviding {
     const base=await this.base(), path='/bbs/board.php?bo_table='+match[1]+'&is='+requireId(mangaId)+'&wr_id='+match[2]
     return App.createChapterDetails({id:chapterId,mangaId,pages:parseImages(await this.html(path,base),base)})
   }
-  async getCloudflareBypassRequestAsync(): Promise<Request> { return App.createRequest({url:await this.base()+'/',method:'GET'}) }
+  async getCloudflareBypassRequestAsync(): Promise<Request> {
+    return App.createRequest({url:await this.base()+'/',method:'GET',headers: {
+      Referer:this.shareBase+'/', 'User-Agent':await this.requestManager.getDefaultUserAgent()
+    }})
+  }
+  // Legacy 0.8 entry point uses the last validated configured origin.
+  getCloudflareBypassRequest(): Request {
+    return App.createRequest({url:this.shareBase+'/',method:'GET'})
+  }
   getMangaShareUrl(mangaId: string): string {
     // SDK share URL is synchronous. This promise-free default is replaced by the
     // most recently retrieved configured origin after any normal source call.
