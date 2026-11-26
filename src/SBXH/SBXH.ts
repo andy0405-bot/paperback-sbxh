@@ -7,7 +7,7 @@ import * as cheerio from 'cheerio'
 
 const BASE = 'https://sbxh9.com'
 export const SBXHInfo: SourceInfo = {
-  name: 'SBXH 한국어', version: '0.1.0', icon: 'icon.png', author: 'andy0405-bot',
+  name: 'SBXH 한국어', version: '0.1.1', icon: 'icon.png', author: 'andy0405-bot',
   description: 'Paperback 0.8 시험판. 일반 접근 가능한 회차를 지원합니다.',
   websiteBaseURL: BASE, language: 'ko', contentRating: ContentRating.ADULT,
   intents: SourceIntents.MANGA_CHAPTERS | SourceIntents.HOMEPAGE_SECTIONS
@@ -162,28 +162,73 @@ export class SBXH implements PaperbackExtensionBase, ChapterProviding {
     const $ = cheerio.load(await this.request('/manhwa/' + encodeURIComponent(mangaId)))
     const title = $('h1.hero-v2-title').text().trim()
     if (!title) throw new Error('작품 제목을 찾지 못했습니다.')
+    const genres = $('.hero-v2-tags a, .hero-v2-genres a, .hero-v2-genre a')
+      .toArray().map(e => $(e).text().trim().replace(/^#/, '')).filter(Boolean)
+    // Classify each work, not every title in a mixed-content catalogue as explicit.
+    // Preserve the conservative classification when the site's labels are unavailable.
+    const explicit = genres.length === 0 || genres.some(g => /^(성인|19|19금|adult|hentai)$/i.test(g))
     return App.createSourceManga({id: mangaId, mangaInfo: App.createMangaInfo({
       titles: [title], image: absolute($('meta[property="og:image"]').attr('content') || ''),
       author: $('.hero-v2-author').text().trim(),
       desc: $('.hero-v2-description, .hero-v2-synopsis').first().text().trim(),
-      status: $('.pill-status.ongoing').length ? 'ONGOING' : 'UNKNOWN',
-      hentai: true
+      status: $('.pill-status.ongoing').length ? 'ongoing' : 'unknown',
+      tags: genres.length ? [App.createTagSection({id: 'genres', label: '장르',
+        tags: genres.map(g => App.createTag({id: g, label: g}))})] : [],
+      hentai: explicit
     })})
   }
   async getChapters(mangaId: string): Promise<Chapter[]> {
-    const $ = cheerio.load(await this.request('/manhwa/' + encodeURIComponent(mangaId)))
-    const chapters: Chapter[] = [], seen = new Set<string>()
-    $('li.ep-row-v2 a.ep-row-v2-link').each((index, element) => {
-      const row = $(element), path = row.attr('href') || ''
-      const match = path.match(/^\/manhwa\/([^/]+)\/([^/?#]+)$/)
-      if (!match || match[1] !== mangaId || seen.has(match[2])) return
-      const name = row.find('.ep-row-v2-title strong').text().trim() || row.find('.ep-row-v2-title').text().trim()
-      const day = /^(\d{2})\.(\d{2})\.(\d{2})$/.exec(row.find('.ep-row-v2-date').text().trim())
-      const time = day ? new Date('20' + day[1] + '-' + day[2] + '-' + day[3] + 'T00:00:00+09:00') : undefined
-      seen.add(match[2])
-      chapters.push(App.createChapter({id: match[2], name, chapNum: parseFloat(name) || 0,
-        langCode: 'ko', sortingIndex: -index, time: time && Number.isFinite(time.getTime()) ? time : undefined}))
-    })
+    const path = '/manhwa/' + encodeURIComponent(mangaId)
+    let $ = cheerio.load(await this.request(path)), page = 1
+    const count = /(\d+)/.exec($('.ep-section-count').text().replace(/,/g, ''))
+    const expected = count ? Number(count[1]) : null
+    const chapters: Chapter[] = [], seen = new Set<string>(), unavailable = new Set<string>()
+    while (true) {
+      const pager = $('.episode-pager').first()
+      if (pager.length && Number(pager.find('.is-active').text().trim()) !== page) {
+        throw new Error('회차 페이지 응답 불일치: 요청 ' + page + '페이지.')
+      }
+      const before = chapters.length + unavailable.size
+      $('li.ep-row-v2').each((_, element) => {
+        const item = $(element)
+        if (item.find('a.ep-row-v2-link').length || !item.find('.ep-row-v2-link.is-disabled').length) return
+        const ref = item.attr('data-episode-ref')
+        if (!ref) throw new Error('열람 불가 회차의 식별자를 확인하지 못했습니다.')
+        unavailable.add(ref)
+      })
+      $('li.ep-row-v2 a.ep-row-v2-link').each((_, element) => {
+        const row = $(element), match = (row.attr('href') || '').match(/^\/manhwa\/([^/]+)\/([^/?#]+)$/)
+        if (!match || match[1] !== mangaId || seen.has(match[2])) return
+        const name = row.find('.ep-row-v2-title strong').text().trim() || row.find('.ep-row-v2-title').text().trim()
+        const day = /^(\d{2})\.(\d{2})\.(\d{2})$/.exec(row.find('.ep-row-v2-date').text().trim())
+        const time = day ? new Date('20' + day[1] + '-' + day[2] + '-' + day[3] + 'T00:00:00+09:00') : undefined
+        seen.add(match[2])
+        chapters.push(App.createChapter({id: match[2], name, chapNum: parseFloat(name) || 0,
+          langCode: 'ko', sortingIndex: -chapters.length, time: time && Number.isFinite(time.getTime()) ? time : undefined}))
+      })
+      if (chapters.length + unavailable.size === before && (page > 1 || (expected !== null && expected > 0))) {
+        throw new Error('회차 목록 진행이 멈췄습니다 (' + page + '페이지).')
+      }
+      let nextPage = Infinity, nextPath = ''
+      pager.find('a[href]').each((_, element) => {
+        const href = $(element).attr('href') || ''
+        const local = href.startsWith(BASE + '/') ? href.slice(BASE.length) : href
+        const match = /[?&]epage=(\d+)(?:&|$)/.exec(local)
+        if (local.split('?')[0] !== path || !match) return
+        const candidate = Number(match[1])
+        if (candidate > page && candidate < nextPage) { nextPage = candidate; nextPath = local }
+      })
+      if (!nextPath) {
+        if (expected !== null && chapters.length + unavailable.size !== expected) {
+          throw new Error('전체 회차 수 불일치: ' + chapters.length + '개, 열람 불가 ' + unavailable.size + '개 / 총 ' + expected)
+        }
+        break
+      }
+      if (nextPage !== page + 1) throw new Error('연속된 다음 회차 페이지 링크를 찾지 못했습니다.')
+      page = nextPage
+      try { $ = cheerio.load(await this.request(nextPath)) }
+      catch (error) { throw new Error('회차 ' + page + '페이지를 가져오지 못했습니다. ' + String(error)) }
+    }
     if (!chapters.length) throw new Error('회차 목록이 비어 있거나 접근할 수 없습니다.')
     return chapters
   }
