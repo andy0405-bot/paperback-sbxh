@@ -7,7 +7,7 @@ import * as cheerio from 'cheerio'
 
 const BASE = 'https://sbxh9.com'
 export const SBXHInfo: SourceInfo = {
-  name: 'SBXH 한국어', version: '0.1.1', icon: 'icon.png', author: 'andy0405-bot',
+  name: 'SBXH 한국어', version: '0.1.2', icon: 'icon.png', author: 'andy0405-bot',
   description: 'Paperback 0.8 시험판. 일반 접근 가능한 회차를 지원합니다.',
   websiteBaseURL: BASE, language: 'ko', contentRating: ContentRating.ADULT,
   intents: SourceIntents.MANGA_CHAPTERS | SourceIntents.HOMEPAGE_SECTIONS
@@ -58,6 +58,28 @@ export function orderedImages(value: unknown): string[] {
   return pages
 }
 
+// Report server evidence without exposing response bodies, tokens or client IPs.
+export function checkedResponse(response: Response, method: string, path: string): string {
+  const body = response.data || ''
+  const title = /<title[^>]*>([^<]*)<\/title>/i.exec(body)?.[1].trim() || ''
+  const ipBlocked = /\bNGINX_CIDR_REALIP\b/.test(body)
+  const challenge = /just a moment|attention required/i.test(title) || /cf-chl-|challenge-platform/.test(body)
+  const denied = /access denied|forbidden/i.test(title)
+  const prefix = '[SBXH HTTP ' + response.status + '] ' + method + ' ' + path.split('?')[0] + ': '
+  if (response.status < 200 || response.status >= 300 || ipBlocked || challenge || denied) {
+    let reason = '서버가 정상 응답을 반환하지 않았습니다.'
+    if (ipBlocked) reason = '사이트가 접속 IP 대역을 차단했습니다 (NGINX_CIDR_REALIP). 확장에서 해제할 수 없습니다.'
+    else if (response.status === 401) reason = '서버가 인증을 요구했습니다.'
+    else if (challenge) reason = '사이트의 브라우저 확인 페이지가 반환되었습니다. 웹뷰에서 접속 상태를 확인해 주세요.'
+    else if (response.status === 403 || denied) reason = '서버가 접근을 거부했습니다. 로그인 필요 여부와 차단 사유는 서버 응답을 확인해야 합니다.'
+    else if (response.status === 428) reason = '서버가 요청의 선행 조건을 요구했습니다 (HTTP 428).'
+    else if (response.status === 429) reason = '요청 제한입니다. 잠시 후 다시 시도해 주세요.'
+    throw new Error(prefix + reason)
+  }
+  if (!body.trim()) throw new Error(prefix + '사이트 응답 본문이 비어 있습니다.')
+  return body
+}
+
 export class SBXH implements PaperbackExtensionBase, ChapterProviding {
   requestManager = App.createRequestManager({
     requestsPerSecond: 2, requestTimeout: 20000,
@@ -78,13 +100,7 @@ export class SBXH implements PaperbackExtensionBase, ChapterProviding {
       headers: { Referer: referer, ...(method === 'POST'
         ? { 'Content-Type': 'application/json', 'x-images-client': 'viewer-v1' } : {}) }
     }), method === 'GET' ? 1 : 0)
-    if (response.status === 401 || response.status === 403 || response.status === 428) {
-      throw new Error('사이트 인증 또는 접근 제한이 필요합니다. 일반 웹페이지에서 접근 상태를 확인해 주세요.')
-    }
-    if (response.status === 429) throw new Error('요청이 많습니다. 잠시 후 다시 시도해 주세요.')
-    if (response.status < 200 || response.status >= 300) throw new Error('사이트 HTTP 오류 ' + response.status)
-    if (!response.data) throw new Error('사이트 응답이 비어 있습니다.')
-    return response.data
+    return checkedResponse(response, method, path)
   }
 
   private async listing(kind: string, page: number): Promise<PagedResults> {
@@ -127,7 +143,12 @@ export class SBXH implements PaperbackExtensionBase, ChapterProviding {
   }
 
   async getHomePageSections(callback: (section: HomeSection) => void): Promise<void> {
-    for (const [id, title] of [['updates', '최신 업데이트'], ['fresh', '신규 등록'], ['views', '조회순']]) {
+    const sections = [['updates', '최신 업데이트'], ['fresh', '신규 등록'], ['views', '조회순']]
+    // Register sections before I/O, as the official 0.8 source does.
+    for (const [id, title] of sections) callback(App.createHomeSection({
+      id, title, type: 'singleRowNormal', items: [], containsMoreItems: false
+    }))
+    for (const [id, title] of sections) {
       const data = await this.listing(id, 1)
       callback(App.createHomeSection({id, title, type: 'singleRowNormal',
         items: data.results, containsMoreItems: !!data.metadata}))
@@ -262,6 +283,14 @@ export class SBXH implements PaperbackExtensionBase, ChapterProviding {
     try { payload = JSON.parse(raw) } catch (_) { throw new Error('이미지 서버가 JSON을 반환하지 않았습니다.') }
     if (!payload.ok) throw new Error('이미지 서버가 일반 접근을 허용하지 않았습니다.')
     return App.createChapterDetails({id: chapterId, mangaId, pages: orderedImages(payload.images)})
+  }
+
+  // Paperback 0.8's globe uses this hook to open the normal site web view.
+  // No challenge solving, cookie extraction, proxy or security modification.
+  async getCloudflareBypassRequestAsync(): Promise<Request> {
+    return App.createRequest({url: BASE + '/', method: 'GET', headers: {
+      Referer: BASE + '/', 'User-Agent': await this.requestManager.getDefaultUserAgent()
+    }})
   }
 
   getMangaShareUrl(mangaId: string): string { return BASE + '/manhwa/' + encodeURIComponent(mangaId) }
