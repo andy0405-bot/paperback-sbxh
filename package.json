@@ -9,7 +9,8 @@
     "bundle": "paperback bundle",
     "serve": "paperback serve",
     "test": "node tools/regression.cjs",
-    "test:live": "tsx tools/verify.ts"
+    "test:live": "tsx tools/verify.ts",
+    "test:toon11": "node tools/verify-toon11.cjs"
   },
   "dependencies": {
     "@paperback/types": "0.8.0-alpha.38",

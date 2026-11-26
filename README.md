@@ -92,3 +92,7 @@ REPORT-0.1.1.txt 및 REGRESSION-RESULTS.json을 참고하세요. 회차 100개 �
 ## 0.1.2 접근 오류 진단
 
 실제 HTTP403 본문에서 NGINX_CIDR_REALIP(IP 대역 차단)를 확인했습니다. 0.1.2는 상태 코드와 사유를 구분하며 일반 웹뷰 진입 함수를 제공합니다. 차단 해제 기능은 아닙니다. REPORT-0.1.2.txt를 참고하세요. iPhone 실제 웹뷰 및 목록 복구는 미검증입니다.
+
+## 11툰 한국어 추가 시험판
+
+동일 저장소에서 Toon11 0.1.0을 별도 설치할 수 있습니다. SBXH 0.1.2의 소스와 ID는 유지합니다. 기본 URL은 11툰 전용 설정에서 변경합니다. 상세 기능·미검증 항목은 TOON11-REPORT.txt와 TOON11-TEST-RESULTS.json을 참고하세요. 테스트: npm run test:toon11. 실제 PC 요청은 ECONNRESET으로 실패했으며 iPhone 동작은 미검증입니다.

@@ -1,0 +1,22 @@
+{
+  "testedAt": "2026-11-26T02:14:37.185Z",
+  "sourceId": "Toon11",
+  "version": "0.1.0",
+  "passed": [
+    "validated origin setting and share/webview origin",
+    "latest list metadata, cover and pagination",
+    "Korean search with page parameter",
+    "latest and popular home sections",
+    "detail title/author/status/tags, source and manga ID",
+    "1/99/100/101/1309 chapters; stable IDs across title query changes; sequential page counts",
+    "overlap no-progress, repeated page and network failure rejected",
+    "safe JSON image parsing, original page order, chapter identity, unsafe scripts rejected",
+    "HTTP access/authentication/rate-limit/server-error distinctions"
+  ],
+  "liveNodeRequests": "ECONNRESET; no HTTP status or body received",
+  "liveCurlRequests": "TLS receive Connection reset; HTTP000",
+  "webSearchSnapshots": "public catalogue and detail text retrievable; cached, not app runtime verification",
+  "iosVerified": false,
+  "imageDownloadVerified": false,
+  "licensedContentPermissionsVerified": false
+}
