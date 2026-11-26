@@ -1,0 +1,56 @@
+{
+  "testedAt": "2026-11-26T01:04:22.848Z",
+  "version": "0.1.1",
+  "fixtureResults": [
+    {
+      "syntheticTotal": 52,
+      "count": 52,
+      "requests": 1,
+      "bothExtensions": true
+    },
+    {
+      "syntheticTotal": 99,
+      "count": 99,
+      "requests": 1,
+      "bothExtensions": true
+    },
+    {
+      "syntheticTotal": 100,
+      "count": 100,
+      "requests": 1,
+      "bothExtensions": true
+    },
+    {
+      "syntheticTotal": 101,
+      "count": 101,
+      "requests": 2,
+      "bothExtensions": true
+    },
+    {
+      "syntheticTotal": 112,
+      "count": 112,
+      "requests": 2,
+      "bothExtensions": true
+    },
+    {
+      "syntheticTotal": 1309,
+      "count": 1309,
+      "requests": 14,
+      "bothExtensions": true
+    }
+  ],
+  "additionalPassed": [
+    "overlap deduplication",
+    "disabled rows accounted for",
+    "repeated active page",
+    "no progress",
+    "network failure rejects partial data",
+    "missing final page",
+    "page gap",
+    "general/adult/unknown metadata",
+    "unchanged listing/search/image implementation"
+  ],
+  "liveRetest": "HTTP 403; access restriction respected",
+  "iosVerified": false,
+  "nativeLibraryPersistenceVerified": false
+}

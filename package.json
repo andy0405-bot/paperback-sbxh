@@ -1,6 +1,6 @@
 {
   "name": "paperback-sbxh",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "repositoryName": "SBXH Korean — Paperback 0.8",
   "description": "Korean source for Paperback 0.8. Normal-access chapters only.",
@@ -8,7 +8,8 @@
     "check": "tsc --noEmit",
     "bundle": "paperback bundle",
     "serve": "paperback serve",
-    "test": "tsx tools/verify.ts"
+    "test": "node tools/regression.cjs",
+    "test:live": "tsx tools/verify.ts"
   },
   "dependencies": {
     "@paperback/types": "0.8.0-alpha.38",

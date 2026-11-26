@@ -1,4 +1,4 @@
-# Paperback 0.8 — SBXH 한국어 0.1.0 시험판
+# Paperback 0.8 — SBXH 한국어 0.1.1 시험판
 
 Paperback v0.8.11-r1의 실제 설치와 렌더링은 아직 미검증입니다.
 Windows Node.js 24에서 @paperback/types 및 toolchain 0.8.0-alpha.38로 빌드했습니다.
@@ -29,21 +29,21 @@ Windows Node.js 24에서 @paperback/types 및 toolchain 0.8.0-alpha.38로 빌드
     npm test
     npm run bundle -- --folder 0.8
 
-npm test는 실제 사이트에 읽기 요청을 보내고 work/test-results.json을 생성합니다.
+npm test는 합성 HTML로 두 확장 파서의 회차 페이지 이동을 검증합니다. npm run test:live는 실제 사이트에 요청하며 접근 제한 시 실패합니다.
 현재 PC에는 work/npm에 npm을 준비했으며, 전역 설치 없이 build.ps1로 빌드할 수 있습니다.
 버전은 package-lock.json으로 고정했습니다. 오래된 0.8 도구의 간접 의존성 경고가 있어 개발 전용으로 사용합니다.
 
 ## GitHub Pages 배포
 
-예정 저장소는 andy0405-bot/paperback-sbxh입니다. 현재 공개 배포 전 단계입니다.
+저장소는 andy0405-bot/paperback-sbxh입니다. 기존 GitHub Pages 배포를 유지합니다.
 전체 소스를 새 저장소에 반영하고 Settings > Pages의 Source를 GitHub Actions로 설정합니다.
 .github/workflows/pages.yml이 타입 검사와 빌드 후 bundles를 배포합니다.
 
-예정 Repository Base URL
+Repository Base URL
 
     https://andy0405-bot.github.io/paperback-sbxh/0.8/
 
-배포 후 versioning.json에 SBXH 0.1.0이 존재하는지 확인합니다.
+배포 후 versioning.json에 SBXH 0.1.1이 존재하는지 확인합니다.
 Pages에는 확장 코드만 배포합니다. 사이트 이미지나 회차 토큰을 저장하지 않습니다.
 
 ## iPhone 설치와 확인
@@ -68,7 +68,7 @@ src/SBXH/SBXH.ts의 BASE에서 도메인을 수정합니다.
 수정 후 SBXHInfo.version을 올리고 검사·테스트·빌드 후 main에 반영합니다.
 Pages 성공 후 iPhone에서 소스를 업데이트합니다.
 날짜만 제공되는 회차에 업로드 시간을 만들어 붙이지 않습니다.
-사이트가 긴 회차 목록을 별도로 페이지화하면 추가 구현이 필요할 수 있습니다.
+회차 목록은 epage 링크를 순차 조회하여 끝까지 수집합니다.
 
 ## 검증 결과
 
@@ -84,3 +84,7 @@ iPhone 설치·렌더링·자동 갱신, 인증 회차는 미검증입니다.
 공식 개발 가이드 https://github.com/Paperback-iOS/website/blob/master/src/contributing/extension-development/quick-start.md
 공식 배포 예제 https://github.com/Paperback-iOS/extensions/blob/main/.github/workflows/main.yml
 기존 Mangayomi 코드 https://github.com/andy0405-bot/mangayomi-sbxh
+
+## 0.1.1 검증 및 한계
+
+REPORT-0.1.1.txt 및 REGRESSION-RESULTS.json을 참고하세요. 회차 100개 제한을 수정했고 모든 작품을 성인물로 저장하던 분류를 작품별로 처리합니다. 라이브러리 표시 해결 여부는 iPhone에서 재검증해야 합니다. 이번 실제 사이트 요청은 HTTP403으로 제한되었습니다. 기존 ID와 사용자 데이터는 변경하지 않습니다.
