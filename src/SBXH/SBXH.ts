@@ -7,7 +7,7 @@ import * as cheerio from 'cheerio'
 
 const BASE = 'https://sbxh9.com'
 export const SBXHInfo: SourceInfo = {
-  name: 'SBXH 한국어', version: '0.1.2', icon: 'icon.png', author: 'andy0405-bot',
+  name: 'SBXH 한국어', version: '0.1.3', icon: 'icon.png', author: 'andy0405-bot',
   description: 'Paperback 0.8 시험판. 일반 접근 가능한 회차를 지원합니다.',
   websiteBaseURL: BASE, language: 'ko', contentRating: ContentRating.ADULT,
   intents: SourceIntents.MANGA_CHAPTERS | SourceIntents.HOMEPAGE_SECTIONS
@@ -185,9 +185,7 @@ export class SBXH implements PaperbackExtensionBase, ChapterProviding {
     if (!title) throw new Error('작품 제목을 찾지 못했습니다.')
     const genres = $('.hero-v2-tags a, .hero-v2-genres a, .hero-v2-genre a')
       .toArray().map(e => $(e).text().trim().replace(/^#/, '')).filter(Boolean)
-    // Classify each work, not every title in a mixed-content catalogue as explicit.
-    // Preserve the conservative classification when the site's labels are unavailable.
-    const explicit = genres.length === 0 || genres.some(g => /^(성인|19|19금|adult|hentai)$/i.test(g))
+    // User preference: do not set the per-work hentai flag.
     return App.createSourceManga({id: mangaId, mangaInfo: App.createMangaInfo({
       titles: [title], image: absolute($('meta[property="og:image"]').attr('content') || ''),
       author: $('.hero-v2-author').text().trim(),
@@ -195,7 +193,7 @@ export class SBXH implements PaperbackExtensionBase, ChapterProviding {
       status: $('.pill-status.ongoing').length ? 'ongoing' : 'unknown',
       tags: genres.length ? [App.createTagSection({id: 'genres', label: '장르',
         tags: genres.map(g => App.createTag({id: g, label: g}))})] : [],
-      hentai: explicit
+      hentai: false
     })})
   }
   async getChapters(mangaId: string): Promise<Chapter[]> {
