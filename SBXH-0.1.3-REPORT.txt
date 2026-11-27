@@ -1,0 +1,6 @@
+SBXH 0.1.3
+User-requested change: return hentai:false for every work; remove genre-driven hentai classification. Source-level ADULT rating is unchanged. No app filter setting is modified.
+Existing manga/chapter/source IDs, pagination, search, image loading, and Toon11 source are unchanged.
+TypeScript check, synthetic regression (52/99/100/101/112/1309 chapters and metadata cases), and official 0.8 bundle passed.
+No new live HTTP test or iPhone test performed. Existing saved hentai:true metadata is not proven to refresh automatically. Library visibility remains unverified.
+Original user backup was read only and was not uploaded to GitHub or modified.
