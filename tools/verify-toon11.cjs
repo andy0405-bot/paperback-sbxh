@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript');
 const base='https://update.spotv24.com', state=new Map(), calls=[];let responses=new Map();
 const App=new Proxy({}, {get:(_,key)=>key==='createSourceStateManager'?()=>({retrieve:async k=>state.get(k),store:async(k,v)=>state.set(k,v)}):key==='createRequestManager'?()=>({getDefaultUserAgent:async()=> 'Mozilla/5.0',schedule:async r=>{calls.push(r.url);let response=responses.get(r.url);if(response instanceof Error)throw response;return response || {status:404,data:'Not found'}}}):v=>v});
-const code=fs.readFileSync('src/Toon11/Toon11.ts','utf8');const ctx={App,require,exports:{},console};vm.runInNewContext(ts.transpileModule(code,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2019,esModuleInterop:true}}).outputText,ctx);const {Toon11,parseImages,origin,responseText,Toon11Info}=ctx.exports;
+const code=fs.readFileSync('src/Toon11/Toon11.ts','utf8');const ctx={App,require,exports:{},console};vm.runInNewContext(ts.transpileModule(code,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2019,esModuleInterop:true}}).outputText,ctx);const {Toon11,parseImages,origin,responseText,Toon11Info,updateDate}=ctx.exports;
 const results=[];const ok=(url,html)=>responses.set(base+url,{status:200,data:html});
 const pager=(page,next,path)=>`<span class="pg"><strong class="pg_current">열린 ${page} 페이지</strong>${next?`<a class="pg_page" href="${path}&page=${next}">${next} 페이지</a>`:''}</span>`;
 const row=(id)=>`<li><button onclick="location.href='./board.php?bo_table=toons&is=2&wr_id=${id}'"><span class="episode-title">원피스 ${id}화</span></button><span class="free-date">26.11.26(1)</span></li>`;
@@ -24,4 +24,16 @@ assert.throws(()=>responseText({status:200,data:'<form id="challenge-form">확�
 assert(Toon11Info.intents & 16)
 assert.equal(source.getCloudflareBypassRequest().url,base+'/')
 results.push('normal catalogue/detail/viewer with challenge-platform script accepted; challenge form rejected; 0.8 webview intent and legacy hook')
-assert.equal(Toon11Info.version,'0.1.1');assert(code.includes('SourceIntents.SETTINGS_UI'));const report={testedAt:new Date().toISOString(),sourceId:'Toon11',version:'0.1.1',passed:results,liveNodeRequests:'ECONNRESET; no HTTP status or body received',liveCurlRequests:'TLS receive Connection reset; HTTP000',webSearchSnapshots:'public catalogue and detail text retrievable; cached, not app runtime verification',iosVerified:false,imageDownloadVerified:false,licensedContentPermissionsVerified:false};fs.writeFileSync('TOON11-TEST-RESULTS.json',JSON.stringify(report,null,2)+'\n');console.log(report);})().catch(e=>{console.error(e);process.exitCode=1});
+assert.equal(updateDate('러브코미디 11.27(1)'), '11.27')
+assert.equal(updateDate('판타지'), '')
+responses.clear();state.delete('latestSummaries');
+const datedList=list(1,null,'/bbs/board.php?bo_table=toon_c&sord=&type=upd').replace('</li>','<div class="homelist-genre">액션 11.27(1)</div></li>')
+ok('/bbs/board.php?bo_table=toon_c&sord=&type=upd&page=1',datedList)
+assert.equal((await source.getViewMoreItems('updates')).results[0].subtitle,'11.27')
+ok(series,'<h2 class="title">원피스</h2><ul id="comic-episode-list">'+row(1199).replace('26.11.26','26.11.27')+'</ul>')
+await source.getMangaDetails('2')
+assert.equal((await source.getViewMoreItems('updates')).results[0].subtitle,'1199화 · 11.27')
+ok('/bbs/board.php?bo_table=toon_c&sord=&type=upd&page=1',datedList.replace('11.27','11.28'))
+assert.equal((await source.getViewMoreItems('updates')).results[0].subtitle,'11.28')
+results.push('list date subtitle; latest episode cache from existing detail fetch; stale episode omitted; no per-card network requests')
+assert.equal(Toon11Info.version,'0.1.2');assert(code.includes('SourceIntents.SETTINGS_UI'));const report={testedAt:new Date().toISOString(),sourceId:'Toon11',version:'0.1.2',passed:results,liveNodeRequests:'ECONNRESET; no HTTP status or body received',liveCurlRequests:'TLS receive Connection reset; HTTP000',webSearchSnapshots:'public catalogue and detail text retrievable; cached, not app runtime verification',iosVerified:false,imageDownloadVerified:false,licensedContentPermissionsVerified:false};fs.writeFileSync('TOON11-TEST-RESULTS.json',JSON.stringify(report,null,2)+'\n');console.log(report);})().catch(e=>{console.error(e);process.exitCode=1});
