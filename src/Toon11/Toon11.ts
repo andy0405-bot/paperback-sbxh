@@ -9,7 +9,7 @@ import * as cheerio from 'cheerio'
 
 const DEFAULT_BASE = 'https://update.spotv24.com'
 export const Toon11Info: SourceInfo = {
-  name: '11툰 한국어', version: '0.1.1', icon: 'icon.png', author: 'andy0405-bot',
+  name: '11툰 한국어', version: '0.1.2', icon: 'icon.png', author: 'andy0405-bot',
   description: 'Paperback 0.8 시험판. 공개 일반 만화 페이지를 읽습니다. 실제 기기 미검증.',
   websiteBaseURL: DEFAULT_BASE, language: 'ko', contentRating: ContentRating.MATURE,
   intents: SourceIntents.MANGA_CHAPTERS | SourceIntents.HOMEPAGE_SECTIONS | SourceIntents.SETTINGS_UI | SourceIntents.CLOUDFLARE_BYPASS_REQUIRED
@@ -76,6 +76,14 @@ export function parseImages(html: string, base: string): string[] {
   }
   return list.map(value => imageUrl(value, base))
 }
+export function updateDate(text: string): string {
+  // The site's list presents MM.DD. Never invent a year or time.
+  const matches = text.match(/(?:\d{2,4}\.)?\d{1,2}\.\d{1,2}(?:\s+\d{1,2}:\d{2})?/g)
+  return matches?.[matches.length - 1]?.trim() || ''
+}
+function chapterLabel(text: string): string {
+  return text.match(/\d+(?:[-.]\d+)?\s*화/)?.[0] || ''
+}
 export class Toon11 implements PaperbackExtensionBase, ChapterProviding {
   stateManager = App.createSourceStateManager()
   requestManager = App.createRequestManager({requestsPerSecond: 2, requestTimeout: 20000,
@@ -126,13 +134,22 @@ export class Toon11 implements PaperbackExtensionBase, ChapterProviding {
   private async listing(path: string, page: number): Promise<PagedResults> {
     const base = await this.base(), $ = cheerio.load(await this.html(path, base))
     const results: PartialSourceManga[] = [], seen = new Set<string>()
+    const summaries = await this.stateManager.retrieve('latestSummaries') || {}
     $('li[data-id]').each((_, e) => {
       const row = $(e), id = row.attr('data-id') || '', title = row.find('.homelist-title').text().trim()
       if (!/^\d+$/.test(id) || !title || seen.has(id)) return
       const thumb = row.find('.homelist-thumb').first()
       const style = /url\(\s*['"]?([^'"\s)]+)['"]?\s*\)/.exec(thumb.attr('style') || '')?.[1] || ''
       const img = thumb.attr('data-mobile-image') || style || row.find('img').attr('data-src') || row.find('img').attr('src') || ''
-      seen.add(id); results.push(App.createPartialSourceManga({mangaId:id, title, image:imageUrl(img,base)}))
+      const meta = row.clone(); meta.find('.homelist-title').remove()
+      const date = updateDate(meta.text())
+      const suppliedChapter = chapterLabel(row.find('.homelist-episode, .latest-episode, [data-latest-chapter]').text())
+      const cached = summaries[id]
+      // Only attach a cached episode to a list date from that same update.
+      // Dates may be omitted in popular/search; then the last fetched episode is labelled.
+      const chapter = suppliedChapter || (cached && (!date || cached.listDate === date) ? cached.chapter : '')
+      const subtitle = [chapter, date || (chapter && cached?.listDate) || ''].filter(Boolean).join(' · ')
+      seen.add(id); results.push(App.createPartialSourceManga({mangaId:id, title, image:imageUrl(img,base), subtitle:subtitle || undefined}))
     })
     if (!results.length && !/검색.*(?:없|결과가 없습니다)|게시물이 없습니다|검색된 자료가 하나도 없습니다/.test($.text())) throw new Error('작품 목록 선택자를 찾지 못했습니다. 사이트 구조 또는 접근 상태를 확인해 주세요.')
     const next = this.next($,path,base,page)
@@ -161,11 +178,21 @@ export class Toon11 implements PaperbackExtensionBase, ChapterProviding {
     if (!title) throw new Error('작품 상세 제목이 없습니다.')
     const field=(label:string) => $('span').filter((_,e)=>$(e).text().trim().replace(/\s*[:：]\s*$/,'')===label).first().next('span').text().trim()
     const genres=field('장르').split(',').map(x=>x.trim()).filter(Boolean), status=field('분류')
+    await this.rememberLatest(mangaId, $)
     return App.createSourceManga({id:mangaId,mangaInfo:App.createMangaInfo({titles:[title],
       image:imageUrl($('img.banner').attr('src') || '',base),author:field('작가'),desc:field('소개'),
       status: /완결/.test(status)?'completed':/주간|월간|연재|격주/.test(status)?'ongoing':'unknown',
       hentai:genres.some(g=>/^(성인|19|19금|adult|hentai)$/i.test(g)),
       tags:[App.createTagSection({id:'genres',label:'장르',tags:genres.map(g=>App.createTag({id:g,label:g}))})]})})
+  }
+  private async rememberLatest(mangaId: string, $: cheerio.CheerioAPI): Promise<void> {
+    const row = $('#comic-episode-list > li').first()
+    const chapter = chapterLabel(row.find('.episode-title').text())
+    const day = /(\d{2})\.(\d{2})\.(\d{2})/.exec(row.find('.free-date').text())
+    if (!chapter || !day) return
+    const summaries = await this.stateManager.retrieve('latestSummaries') || {}
+    summaries[mangaId] = {chapter, listDate:day[2]+'.'+day[3]}
+    await this.stateManager.store('latestSummaries', summaries)
   }
   async getChapters(mangaId: string): Promise<Chapter[]> {
     const base=await this.base(), chapters:Chapter[]=[], seen=new Set<string>(), visited=new Set<string>()
@@ -174,6 +201,7 @@ export class Toon11 implements PaperbackExtensionBase, ChapterProviding {
       if(visited.has(path)) throw new Error('회차 페이지가 반복되었습니다.')
       visited.add(path)
       const current: string=path, $=cheerio.load(await this.html(current,base)), before=chapters.length
+      if (page === 1) await this.rememberLatest(mangaId, $)
       $('#comic-episode-list > li').each((_,e)=>{
         const row=$(e), button=row.find('button').first()
         const href=row.find('a[href]').attr('href') || /location\.href\s*=\s*['"]([^'"]+)['"]/.exec(button.attr('onclick') || '')?.[1]
