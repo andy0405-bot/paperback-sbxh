@@ -7,7 +7,7 @@ import * as cheerio from 'cheerio'
 
 const BASE = 'https://sbxh9.com'
 export const SBXHInfo: SourceInfo = {
-  name: 'SBXH 한국어', version: '0.1.3', icon: 'icon.png', author: 'andy0405-bot',
+  name: 'SBXH 한국어', version: '0.1.4', icon: 'icon.png', author: 'andy0405-bot',
   description: 'Paperback 0.8 시험판. 일반 접근 가능한 회차를 지원합니다.',
   websiteBaseURL: BASE, language: 'ko', contentRating: ContentRating.ADULT,
   intents: SourceIntents.MANGA_CHAPTERS | SourceIntents.HOMEPAGE_SECTIONS
@@ -94,12 +94,46 @@ export class SBXH implements PaperbackExtensionBase, ChapterProviding {
     }
   })
 
+  private pending = new Map<string, Promise<string>>()
+  private recent = new Map<string, {body: string; expires: number}>()
+  private blockedUntil = 0
+
   private async request(path: string, method = 'GET', data?: string, referer = BASE + '/'): Promise<string> {
+    if (Date.now() < this.blockedUntil) {
+      throw new Error('서버 접근 거부 후 요청을 잠시 중단했습니다. 1분 뒤 다시 확인해 주세요.')
+    }
+    const key = JSON.stringify([method, path, data, referer])
+    const existing = this.pending.get(key)
+    if (existing) return existing
+    for (const [entry, value] of this.recent) {
+      if (value.expires <= Date.now()) this.recent.delete(entry)
+    }
+    const cached = this.recent.get(key)
+    if (method === 'GET' && cached) return cached.body
+    const operation = this.performRequest(path, method, data, referer)
+    this.pending.set(key, operation)
+    try {
+      const body = await operation
+      if (method === 'GET') {
+        if (this.recent.size >= 32) this.recent.delete(this.recent.keys().next().value)
+        this.recent.set(key, {body, expires: Date.now() + 10000})
+      }
+      return body
+    } finally {
+      this.pending.delete(key)
+    }
+  }
+
+  private async performRequest(path: string, method: string, data: string | undefined, referer: string): Promise<string> {
     const response = await this.requestManager.schedule(App.createRequest({
       url: absolute(path), method, data,
       headers: { Referer: referer, ...(method === 'POST'
         ? { 'Content-Type': 'application/json', 'x-images-client': 'viewer-v1' } : {}) }
-    }), method === 'GET' ? 1 : 0)
+    }), 0)
+    if (response.status === 403 || response.status === 429) {
+      this.blockedUntil = Date.now() + 60000
+      this.recent.clear()
+    }
     return checkedResponse(response, method, path)
   }
 
@@ -252,7 +286,19 @@ export class SBXH implements PaperbackExtensionBase, ChapterProviding {
     return chapters
   }
 
+  private pendingChapters = new Map<string, Promise<ChapterDetails>>()
+
   async getChapterDetails(mangaId: string, chapterId: string): Promise<ChapterDetails> {
+    const key = JSON.stringify([mangaId, chapterId])
+    const existing = this.pendingChapters.get(key)
+    if (existing) return existing
+    const operation = this.loadChapterDetails(mangaId, chapterId)
+    this.pendingChapters.set(key, operation)
+    try { return await operation }
+    finally { this.pendingChapters.delete(key) }
+  }
+
+  private async loadChapterDetails(mangaId: string, chapterId: string): Promise<ChapterDetails> {
     const path = '/manhwa/' + encodeURIComponent(mangaId) + '/' + encodeURIComponent(chapterId)
     const url = BASE + path, html = await this.request(path), $ = cheerio.load(html)
     const expected = Number($('.vw-imgs').attr('data-viewer-image-count'))
